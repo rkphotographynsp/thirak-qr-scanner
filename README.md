@@ -1,0 +1,1 @@
+# thirak-qr-scanner
