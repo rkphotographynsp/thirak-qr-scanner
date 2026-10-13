@@ -4,35 +4,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>THIRAK | Secure QR Scanner</title>
-
+<title>THIRAK | Secure Pass Activation</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
 * { box-sizing: border-box; }
-
 body {
   margin: 0;
   padding: 20px 14px;
   background: #31060b;
   color: white;
-  font-family: Arial, sans-serif;
+  font: 16px Arial, sans-serif;
   text-align: center;
 }
-
 h1 {
   color: #f0c36e;
   font-size: 42px;
+  margin: 10px 0 2px;
   letter-spacing: 3px;
-  margin: 10px 0 3px;
 }
-
 .subtitle {
-  color: #e6cfab;
   font-size: 11px;
   letter-spacing: 2px;
+  color: #e6cfab;
 }
-
 .card {
   max-width: 470px;
   margin: 22px auto;
@@ -41,42 +36,36 @@ h1 {
   color: #262626;
   border-radius: 15px;
 }
-
 h2 {
-  color: #7d1227;
   font-size: 20px;
+  color: #7d1227;
 }
-
-input, button, select {
+input[type=password], button {
   width: 100%;
   padding: 14px;
-  margin: 9px 0;
   font-size: 16px;
   border-radius: 9px;
+  margin: 9px 0;
 }
-
-input, select {
+input[type=password] {
   border: 1px solid #ccc;
 }
-
 button {
   background: #83152a;
   color: white;
   border: 0;
   font-weight: bold;
-  cursor: pointer;
 }
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+button:disabled { opacity: .5; }
+label {
+  display: block;
+  font-size: 14px;
+  margin: 12px 0;
 }
-
 #reader {
   margin: 14px auto;
   max-width: 420px;
 }
-
 #result {
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -84,163 +73,136 @@ button:disabled {
   margin: 12px 0;
   border-radius: 9px;
   background: #eee;
+  font-weight: bold;
 }
-
 .success {
   background: #d8f8df !important;
   color: #17632b;
 }
-
 .error {
   background: #ffe0e0 !important;
   color: #a31313;
 }
-
+.warn {
+  background: #fff3cd !important;
+  color: #7a5b00;
+}
 .info {
   background: #e8efff !important;
   color: #223c76;
 }
-
 .count {
-  color: #7d1227;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: bold;
-  margin: 12px 0;
+  color: #7d1227;
+  margin: 10px 0;
 }
-
 .note {
   font-size: 12px;
   color: #666;
-  line-height: 1.6;
-}
-
-.test-label {
-  color: #17632b;
-  font-weight: bold;
-}
-
-.live-label {
-  color: #a31313;
-  font-weight: bold;
+  line-height: 1.5;
 }
 </style>
 </head>
 
 <body>
-
 <h1>THIRAK</h1>
 <div class="subtitle">THE GARBA MAHOTSAV</div>
 
 <div class="card">
+  <h2>CONTINUOUS PASS ACTIVATION</h2>
 
-<h2>SECURE PASS SCANNER</h2>
+  <input
+    id="pin"
+    type="password"
+    autocomplete="off"
+    placeholder="Enter Admin PIN"
+    aria-label="Admin PIN"
+  >
 
-<label for="mode">Scanning Mode</label>
+  <label>
+    <input id="testMode" type="checkbox" checked
+           onchange="modeChanged()">
+    SAFE TEST MODE (No Sheet Changes)
+  </label>
 
-<select id="mode" onchange="changeMode()">
-  <option value="test">SAFE TEST MODE</option>
-  <option value="activate">LIVE PASS ACTIVATION</option>
-</select>
+  <button id="start" onclick="startScanner()">
+    START CAMERA
+  </button>
 
-<div id="modeLabel" class="test-label">
-  TEST MODE — No Pass Activation
-</div>
+  <button id="stop" onclick="stopScanner()" disabled>
+    STOP CAMERA
+  </button>
 
-<input
-  id="pin"
-  type="password"
-  autocomplete="off"
-  placeholder="Enter Admin PIN"
-  aria-label="Admin PIN"
->
+  <div id="reader"></div>
 
-<button id="start" onclick="startScanner()">
-  START CAMERA
-</button>
+  <div id="result" class="info">
+    SAFE TEST MODE ON. Only THK-TEST-001 allowed.
+  </div>
 
-<div id="reader"></div>
+  <div id="count" class="count">
+    Total Scanned: - / 2100
+  </div>
 
-<h3>Manual QR Test</h3>
-
-<input
-  id="qrInput"
-  type="text"
-  autocomplete="off"
-  placeholder="Paste Test Verification URL"
->
-
-<button id="manualBtn" onclick="manualScan()">
-  TEST URL WITHOUT CAMERA
-</button>
-
-<div id="result" class="info">
-  Select Test Mode and enter Admin PIN.
-</div>
-
-<div id="count" class="count">
-  Total Scanned: Not loaded
-</div>
-
-<p class="note">
-  Test Mode does not change pass status or scan count.
-  Live Mode activates passes.
-  Gate Entry 24 and Entry 25 are not marked.
-</p>
-
+  <p class="note">
+    Test Mode: No pass activation or count changes.
+    Live Mode: Real pass activation.
+    Gate Entry 24 and Entry 25 remain untouched.
+  </p>
 </div>
 
 <script>
 const API =
   "https://script.google.com/macros/s/AKfycbxBEdYN8HdgVWQziMfvl7P0Ai_c7j6opVyniK1NLI6qNzF4U7A6AJc65Sohwn26Qh24jA/exec";
 
+const $ = id => document.getElementById(id);
+
 let scanner = null;
 let busy = false;
 let lastId = "";
 let lastAt = 0;
-let liveConfirmed = false;
-
-const $ = id => document.getElementById(id);
+let approvedLive = false;
+let lockedMode = "test";
 
 function message(text, kind = "info") {
   $("result").textContent = text;
   $("result").className = kind;
 }
 
-function currentMode() {
-  return $("mode").value;
-}
-
-function changeMode() {
-  if (busy) return;
-
-  const mode = currentMode();
-  liveConfirmed = false;
-
-  if (mode === "test") {
-    $("modeLabel").textContent =
-      "TEST MODE — No Pass Activation";
-    $("modeLabel").className = "test-label";
-    $("manualBtn").textContent =
-      "TEST URL WITHOUT CAMERA";
-
-    message(
-      "Safe Test Mode selected. Only THK-TEST-001 is allowed."
-    );
-  } else {
-    $("modeLabel").textContent =
-      "LIVE MODE — Real Pass Activation";
-    $("modeLabel").className = "live-label";
-    $("manualBtn").textContent =
-      "ACTIVATE PASTED PASS";
-
-    message(
-      "WARNING: Live Mode will activate a real pass.",
-      "error"
-    );
+function modeChanged() {
+  if (busy || scanner) {
+    $("testMode").checked = lockedMode === "test";
+    message("Stop camera before changing mode.", "warn");
+    return;
   }
+
+  if (!$("testMode").checked) {
+    const approved = confirm(
+      "WARNING: LIVE ACTIVATION\n\n" +
+      "Real printed passes will be activated.\n" +
+      "Continue?"
+    );
+
+    if (!approved) {
+      $("testMode").checked = true;
+    }
+  }
+
+  lockedMode = $("testMode").checked
+    ? "test"
+    : "activate";
+
+  approvedLive = lockedMode === "activate";
+
+  message(
+    lockedMode === "test"
+      ? "SAFE TEST MODE ON. Scan THK-TEST-001."
+      : "LIVE MODE ON. Real passes will be activated.",
+    lockedMode === "test" ? "info" : "warn"
+  );
 }
 
-function requestId() {
+function newRequestId() {
   return Array.from(
     crypto.getRandomValues(new Uint8Array(16)),
     b => b.toString(16).padStart(2, "0")
@@ -256,9 +218,11 @@ function parseQR(raw, mode) {
     throw Error("Invalid QR URL");
   }
 
+  const expected = new URL(API);
+
   if (
-    url.origin !== "https://script.google.com" ||
-    url.pathname !== new URL(API).pathname
+    url.origin !== expected.origin ||
+    url.pathname !== expected.pathname
   ) {
     throw Error("Not a THIRAK QR URL");
   }
@@ -283,49 +247,57 @@ function parseQR(raw, mode) {
   return id;
 }
 
-function confirmLive() {
-  if (currentMode() !== "activate") {
-    return true;
+function beep(ok) {
+  try {
+    const AudioCtx =
+      window.AudioContext || window.webkitAudioContext;
+
+    const ctx = new AudioCtx();
+    const oscillator = ctx.createOscillator();
+
+    oscillator.frequency.value = ok ? 880 : 300;
+    oscillator.connect(ctx.destination);
+    oscillator.start();
+
+    setTimeout(() => {
+      oscillator.stop();
+      ctx.close();
+    }, ok ? 150 : 400);
+
+  } catch (err) {}
+
+  if (navigator.vibrate) {
+    navigator.vibrate(
+      ok ? 100 : [200, 100, 200]
+    );
   }
-
-  if (liveConfirmed) {
-    return true;
-  }
-
-  const approved = confirm(
-    "LIVE ACTIVATION\n\n" +
-    "Real passes will be activated and marked scanned.\n" +
-    "Continue?"
-  );
-
-  if (approved) {
-    liveConfirmed = true;
-  }
-
-  return approved;
 }
 
 async function startScanner() {
-  if (busy) return;
+  if (busy || scanner) return;
 
   if (!$("pin").value.trim()) {
     message("Enter Admin PIN first", "error");
     return;
   }
 
-  if (!confirmLive()) return;
-
-  if (scanner) {
-    message("Camera already started", "info");
-    return;
-  }
-
   if (typeof Html5Qrcode === "undefined") {
-    message("QR scanner library unavailable", "error");
+    message("Scanner library not loaded", "error");
     return;
   }
 
+  const mode = $("testMode").checked
+    ? "test"
+    : "activate";
+
+  if (mode === "activate" && !approvedLive) {
+    message("Live Mode not confirmed", "error");
+    return;
+  }
+
+  lockedMode = mode;
   $("start").disabled = true;
+  $("testMode").disabled = true;
 
   try {
     scanner = new Html5Qrcode("reader");
@@ -343,45 +315,47 @@ async function startScanner() {
       () => {}
     );
 
+    $("stop").disabled = false;
+
     message(
-      "Camera ready. Scan a THIRAK QR.",
-      "info"
+      mode === "test"
+        ? "Camera ready. Scan THK-TEST-001."
+        : "LIVE CAMERA READY. Scan printed passes.",
+      mode === "test" ? "info" : "warn"
     );
 
   } catch (err) {
-    $("start").disabled = false;
     scanner = null;
+    $("start").disabled = false;
+    $("testMode").disabled = false;
 
-    message(
-      "Camera Error: " + err.message,
-      "error"
-    );
+    message("Camera error: " + err, "error");
   }
 }
 
-function manualScan() {
-  if (busy) return;
+async function stopScanner() {
+  if (!scanner || busy) return;
 
-  const raw = $("qrInput").value.trim();
+  $("stop").disabled = true;
 
-  if (!raw) {
-    message("Paste a Verification URL first", "error");
-    return;
+  try {
+    await scanner.stop();
+    scanner.clear();
+  } catch (err) {
+    message("Camera stop error: " + err, "error");
   }
 
-  onScan(raw);
+  scanner = null;
+  $("start").disabled = false;
+  $("testMode").disabled = false;
+
+  message("Camera stopped", "info");
 }
 
 async function onScan(raw) {
   if (busy) return;
 
-  const mode = currentMode();
-
-  if (!$("pin").value.trim()) {
-    message("Enter Admin PIN first", "error");
-    return;
-  }
-
+  const mode = lockedMode;
   let id;
 
   try {
@@ -391,7 +365,10 @@ async function onScan(raw) {
     return;
   }
 
-  if (!confirmLive()) return;
+  if (!$("pin").value.trim()) {
+    message("Admin PIN missing", "error");
+    return;
+  }
 
   if (
     id === lastId &&
@@ -404,21 +381,14 @@ async function onScan(raw) {
   lastAt = Date.now();
   busy = true;
 
-  $("mode").disabled = true;
-  $("manualBtn").disabled = true;
-
   if (scanner) {
-    try {
-      scanner.pause(true);
-    } catch (err) {}
+    try { scanner.pause(true); }
+    catch (err) {}
   }
 
-  message(
-    "Processing " + id + "...",
-    "info"
-  );
+  message("Processing " + id + "...", "info");
 
-  const rid = requestId();
+  const rid = newRequestId();
 
   const payload = {
     action: mode,
@@ -441,6 +411,7 @@ async function onScan(raw) {
 
     if (result.ok === true) {
       message(result.message, "success");
+      beep(true);
 
       if (
         mode === "activate" &&
@@ -453,30 +424,32 @@ async function onScan(raw) {
       }
 
     } else {
+      const msg = result.message || "Scan failed";
+
       message(
-        result.message || "Verification failed",
-        "error"
+        msg,
+        /ALREADY/i.test(msg) ? "warn" : "error"
       );
+
+      beep(false);
     }
 
   } catch (err) {
     message(
       "No confirmed server response.\n" +
-      "Check Google Sheet before retrying.\n" +
-      err.message,
+      "Check Google Sheet before retrying.",
       "error"
     );
+
+    beep(false);
 
   } finally {
     setTimeout(() => {
       busy = false;
-      $("mode").disabled = false;
-      $("manualBtn").disabled = false;
 
       if (scanner) {
-        try {
-          scanner.resume();
-        } catch (err) {}
+        try { scanner.resume(); }
+        catch (err) {}
       }
     }, 1200);
   }
@@ -494,7 +467,7 @@ function pollResult(rid, attempt) {
   })
   .then(() => jsonpResult(rid))
   .then(result => {
-    if (result.pending) {
+    if (result && result.pending) {
       return pollResult(rid, attempt + 1);
     }
 
@@ -509,7 +482,7 @@ function jsonpResult(rid) {
 
     let done = false;
 
-    const timeout = setTimeout(
+    const timer = setTimeout(
       () => finish(Error("Response timeout")),
       4500
     );
@@ -518,8 +491,7 @@ function jsonpResult(rid) {
       if (done) return;
 
       done = true;
-      clearTimeout(timeout);
-
+      clearTimeout(timer);
       delete window[name];
       script.remove();
 
@@ -545,9 +517,6 @@ function jsonpResult(rid) {
     document.head.appendChild(script);
   });
 }
-
-changeMode();
 </script>
-
 </body>
 </html>
