@@ -180,5 +180,33 @@
     }
   </script>
 
+<script>
+async function testConnection() {
+  const apiUrl =
+    "https://script.google.com/macros/s/AKfycbxBEdYN8HdgVWQziMfvl7P0Ai_c7j6opVyniK1NLI6qNzF4U7A6AJc65Sohwn26Qh24jA/exec";
+
+  try {
+    await fetch(apiUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain"
+      },
+      body: JSON.stringify({ action: "ping" })
+    });
+
+    alert(
+      "Request sent. Browser cannot confirm the API response yet."
+    );
+  } catch (error) {
+    alert("Connection failed: " + error.message);
+  }
+}
+</script>
+
+<button onclick="testConnection()">
+  TEST API CONNECTION
+</button>
+
 </body>
 </html>
