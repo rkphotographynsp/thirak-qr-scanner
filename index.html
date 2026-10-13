@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>THIRAK | QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px 15px;
+      background: #300609;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 42px;
+      color: #e9bc63;
+      margin: 15px 0 5px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    .card {
+      background: white;
+      color: #222;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 460px;
+      margin: 25px auto;
+    }
+
+    h2 { color: #830f25; }
+
+    button {
+      background: #830f25;
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 9px;
+      width: 100%;
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 18px;
+    }
+
+    #result {
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 9px;
+      margin-top: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    .success {
+      background: #dcfce7 !important;
+      color: #166534;
+    }
+
+    .error {
+      background: #fee2e2 !important;
+      color: #991b1b;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #777;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>THIRAK</h1>
+  <div class="subtitle">THE GARBA MAHOTSAV</div>
+
+  <div class="card">
+
+    <h2>CONTINUOUS QR SCANNER</h2>
+
+    <p>Physical Pass Scanning</p>
+
+    <button id="startBtn" onclick="startScanner()">
+      START CAMERA
+    </button>
+
+    <div id="reader"></div>
+
+    <div id="result">
+      Camera not started
+    </div>
+
+    <p class="note">
+      Camera test only. Pass activation is not connected yet.
+    </p>
+
+  </div>
+
+  <script>
+    let scanner;
+    let lastQR = "";
+    let lastScanTime = 0;
+
+    function showMessage(message, type = "") {
+      const box = document.getElementById("result");
+      box.textContent = message;
+      box.className = type;
+    }
+
+    async function startScanner() {
+      if (typeof Html5Qrcode === "undefined") {
+        showMessage("QR scanner library could not load.", "error");
+        return;
+      }
+
+      document.getElementById("startBtn").disabled = true;
+
+      try {
+        scanner = new Html5Qrcode("reader");
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 230, height: 230 }
+          },
+          onScanSuccess,
+          function () {}
+        );
+
+        showMessage("Camera ready. Scan a QR code.");
+
+      } catch (error) {
+        document.getElementById("startBtn").disabled = false;
+        showMessage("Camera Error: " + error, "error");
+      }
+    }
+
+    function onScanSuccess(qrText) {
+      const now = Date.now();
+
+      if (qrText === lastQR && now - lastScanTime < 3000) {
+        return;
+      }
+
+      lastQR = qrText;
+      lastScanTime = now;
+
+      try {
+        const url = new URL(qrText);
+        const id = url.searchParams.get("id");
+        const token = url.searchParams.get("t");
+
+        if (!id || !token || !/^THK-2026-\d{4}$/.test(id)) {
+          showMessage("INVALID THIRAK QR", "error");
+          return;
+        }
+
+        showMessage("QR DETECTED: " + id + "\nCamera is still running.", "success");
+
+      } catch (error) {
+        showMessage("INVALID QR FORMAT", "error");
+      }
+    }
+  </script>
+
+</body>
+</html>
