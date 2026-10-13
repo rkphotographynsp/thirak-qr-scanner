@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -465,7 +464,7 @@ function pollResult(rid, attempt) {
   return new Promise(resolve => {
     setTimeout(resolve, 1000);
   })
-  .then(() => jsonpResult(rid))
+  .then(() => jsonpResult(rid).catch(() => ({ pending: true })))
   .then(result => {
     if (result && result.pending) {
       return pollResult(rid, attempt + 1);
