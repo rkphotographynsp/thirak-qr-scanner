@@ -450,19 +450,19 @@ async function onScan(raw) {
         try { scanner.resume(); }
         catch (err) {}
       }
-    }, 1200);
+    }, 600);
   }
 }
 
 function pollResult(rid, attempt) {
-  if (attempt >= 25) {
+  if (attempt >= 40) {
     return Promise.reject(
       Error("Server response timed out")
     );
   }
 
   return new Promise(resolve => {
-    setTimeout(resolve, 1000);
+    setTimeout(resolve, attempt === 0 ? 0 : 500);
   })
   .then(() => jsonpResult(rid).catch(() => ({ pending: true })))
   .then(result => {
